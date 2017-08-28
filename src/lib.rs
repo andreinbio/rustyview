@@ -1,7 +1,16 @@
+extern crate serde;
+extern crate serde_json;
+
+mod parser;
+
 pub mod view {
+    use serde_json;
+
     use std::fs::File;
     use std::io::prelude::*;
     use std::io::Read;
+
+    use parser::*;
 
     pub struct View<'a> {
         templates_path: &'a str
@@ -12,13 +21,16 @@ pub mod view {
             View {templates_path: "src/admin/templates/default/"}
         }
 
-        pub fn render(&self, template: &str) -> String {
+        /// # Render provided template
+        pub fn render(&self, template: &str, model: serde_json::Value) -> String {
             // get file here
-            self.get_file(template)
+            let file_content = self.get_file(template);
+            let parsed_content = self.parse_template(file_content);
 
-            // parse contents...
+            parsed_content
         }
 
+        /// # Get file
         fn get_file(&self, template: &str) -> String {
             let ref full_file_path = format!("{}{}", self.templates_path, template);
 
@@ -27,6 +39,15 @@ pub mod view {
             f.read_to_string(&mut contents).expect("Error reading file");
 
             contents
+        }
+
+        /// # Parse template variables
+        fn parse_template(&self, file_content: String) -> String {
+            let mut file_content = Parser::replace_template_blocks(file_content);
+
+            file_content = file_content.replace("{{title}}", "Testing");
+
+            file_content
         }
     }
 }
