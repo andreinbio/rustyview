@@ -30,8 +30,10 @@ impl<'a> View<'a> {
 
     /// # Parse template
     fn parse_template(&self, file_content: String) -> String {
-        let template_blocks = index_blocks(file_content);
+        let template_blocks: Block = index_blocks(&file_content[..]);
+        let final_render: String = clean_template(template_blocks, &file_content[..]);
 
-        String::from("helllo")
+        //String::from("helllo")
+        final_render
     }
 }
