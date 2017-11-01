@@ -1,4 +1,3 @@
-
 use serde_json;
 use loader::*;
 use parser::*;
@@ -8,14 +7,14 @@ pub struct View<'a> {
 }
 
 impl<'a> View<'a> {
-    pub fn new() -> View<'a> {
-        View {templates_path: "src/admin/templates/default/"}
+    pub fn new(path: &'a str) -> View<'a> {
+        View {templates_path: path}
     }
 
     /// # Render provided template
     pub fn render(&self, template: &str, model: serde_json::Value) -> String {
         let file_content = self.get_file(template);
-        let parsed_content = self.parse_template(file_content);
+        let parsed_content = self.parse_template(file_content, model);
 
         parsed_content
     }
@@ -29,9 +28,10 @@ impl<'a> View<'a> {
     }
 
     /// # Parse template
-    fn parse_template(&self, file_content: String) -> String {
-        let template_blocks: Block = index_blocks(&file_content[..]);
-        let final_render: String = clean_template(template_blocks, &file_content[..]);
+    fn parse_template(&self, file_content: String, model: serde_json::Value) -> String {
+        let template_blocks: Option<Vec<BlockFields>> = index_blocks(&file_content[..]);
+        let clean_template: String = clean_template(template_blocks, &file_content[..]);
+        let final_render: String = replace_template_variables(model, &clean_template[..]);
 
         //String::from("helllo")
         final_render
