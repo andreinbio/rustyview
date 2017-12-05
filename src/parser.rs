@@ -33,7 +33,8 @@ pub struct BlockFields {
     start_tag: Option<BlockTag>,
     end_tag: Option<BlockTag>,
     title: String,
-    content: String
+    content: String,
+    new_content: String
 }
 
 /// # Index blocks
@@ -46,10 +47,9 @@ pub fn index_blocks(file_content: &str) -> Option<Vec<BlockFields>> {
     };
 
     let block_tags: Vec<BlockTag> = index_block_tags(file_content, &pattern);
-    let blocks: Vec<BlockFields> = create_block_data(block_tags, file_content);
+    let blocks: Vec<BlockFields> = create_block_data(block_tags, &pattern, file_content);
     println!("blocks length {:?}", blocks.len());
 
-    //Block {blocks: blocks}
     if blocks.len() > 0 {
         Some(blocks)
     } else {
@@ -131,7 +131,7 @@ fn has_block_tag(file_content: &str, pattern: &Pattern) -> bool {
 }
 
 // Get Block Data
-fn create_block_data(block_tags: Vec<BlockTag>, file_content: &str) -> Vec<BlockFields> {
+fn create_block_data(block_tags: Vec<BlockTag>, pattern: &Pattern, file_content: &str) -> Vec<BlockFields> {
     let mut blocks: Vec<BlockFields> = vec![];
     let mut iteration: usize = 0;
     let mut index: usize = 0;
@@ -140,7 +140,7 @@ fn create_block_data(block_tags: Vec<BlockTag>, file_content: &str) -> Vec<Block
         if iteration % 2 == 0 {
             //@TO DO: check that is a opening tag !!!
             blocks.push(get_default_block_fields());
-            blocks[index].title = get_tag_name(&block.content);
+            blocks[index].title = get_tag_name(&block.content, pattern);
             blocks[index].start_tag = Some(block);
         } else {
             //@TO DO: check to see that the closing tag matches the opening one !!!
@@ -159,13 +159,13 @@ fn get_default_block_fields() -> BlockFields {
         start_tag: None,
         end_tag: None,
         title: String::from(""),
-        content: String::from("")
+        content: String::from(""),
+        new_content: String::from("")
     }
 }
 
-fn get_tag_name(tag_content: &str) -> String {
-    //@TO DO: use pattern for the replacements...
-    String::from(tag_content.replace("{%", "").replace("%}", "").replace("endblock", "").replace("block", "").trim())
+fn get_tag_name(tag_content: &str, pattern: &Pattern) -> String {
+    String::from(tag_content.replace(&pattern.start_pattern[..], "").replace(&pattern.end_pattern[..], "").replace(&pattern.end_block_pattern[..], "").replace(&pattern.block_pattern[..], "").trim())
 }
 
 fn get_block_content(blockField: &BlockFields, file_content: &str) -> String {
@@ -180,13 +180,75 @@ pub fn clean_template(blocks: Option<Vec<BlockFields>>, file_content: &str) -> S
     let mut template_content: String = String::from(file_content);
 
     if blocks.is_some() {
-        for block in blocks.unwrap() {
-            template_content = template_content.replace(&block.start_tag.expect("start tag").content[..], "");
-            template_content = template_content.replace(&block.end_tag.expect("start tag").content[..], "");
+        // for block in blocks.as_ref().unwrap() {
+        //     let start_tag: &BlockTag = block.start_tag.as_ref().expect("start tag");
+        //     let end_tag: &BlockTag = block.end_tag.as_ref().expect("end tag");
+        //     let content_to_replace: String = String::from(&template_content[start_tag.content_index..end_tag.content_index]);
+        //
+        //     // template_content = template_content.replace(&start_tag.content[..], "");
+        //     // template_content = template_content.replace(&end_tag.content[..], "");
+        //     template_content = template_content.replace(&content_to_replace[..], &block.content);
+        // }
+        //
+        // for block in blocks.as_ref().unwrap() {
+        //     let start_tag: &BlockTag = block.start_tag.as_ref().expect("start tag");
+        //     let end_tag: &BlockTag = block.end_tag.as_ref().expect("end tag");
+        //     // let content_to_replace: String = String::from(&template_content[start_tag.content_index..end_tag.content_index]);
+        //
+        //     template_content = template_content.replace(&start_tag.content[..], "");
+        //     template_content = template_content.replace(&end_tag.content[..], "");
+        //     // template_content = template_content.replace(&content_to_replace[..], &block.content);
+        // }
+
+        for block in blocks.as_ref().unwrap() {
+            let start_tag: &BlockTag = block.start_tag.as_ref().expect("start tag");
+            let end_tag: &BlockTag = block.end_tag.as_ref().expect("end tag");
+
+            template_content = template_content.replace(&start_tag.content[..], "");
+            template_content = template_content.replace(&end_tag.content[..], "");
+
+            //@TODO change code to use Option structure
+            if block.new_content != "" {
+                template_content = template_content.replace(&block.content, &block.new_content);
+            }
         }
     }
 
     template_content
+}
+
+/// # Check for a parent template and return the its name
+pub fn get_parent_name(file_content: &str) -> Option<String> {
+    let mut template_name: Option<String> = None;
+    let start_index: Option<usize> = file_content.find("{% extends ");
+
+    if start_index.is_some() {
+        let end_index: Option<usize> = (&file_content[start_index.unwrap()..]).find("%}");
+
+        if end_index.is_some() {
+            let string_tag: &str = &file_content[start_index.unwrap()..end_index.unwrap()];
+            template_name = Some(String::from(string_tag.replace("{% extends ", "").replace("%}", "").replace("\"", "").trim()));
+        }
+    }
+
+    template_name
+}
+
+/// # Combine two template blocks
+pub fn update_parent_blocks(mut parent_blocks: Option<Vec<BlockFields>>, child_blocks: Option<Vec<BlockFields>>) -> Option<Vec<BlockFields>>{
+    if parent_blocks.is_some() && child_blocks.is_some() {
+        for parent_block in parent_blocks.as_mut().unwrap() {
+            for child_block in child_blocks.as_ref().unwrap() {
+                println!("parent->title: {}", parent_block.title);
+                println!("child->title: {}", child_block.title);
+                if parent_block.title == child_block.title {
+                    parent_block.new_content = child_block.content.clone();
+                }
+            }
+        }
+    }
+
+    parent_blocks
 }
 
 /// # Replace template variables
@@ -195,7 +257,7 @@ pub fn replace_template_variables(model: serde_json::Value, file_content: &str) 
     let modelKeys = model.as_object().unwrap().keys();
 
     for key in modelKeys {
-        // println!("model key: {:?} and value: {:?}", key, model[key].as_str().unwrap());
+        //@TO DO: use pattern for brackets replacements...
         let newKey = format!("{}{}{}", "{{", key, "}}");
         template_content = template_content.replace(&newKey[..], model[key].as_str().unwrap());
     }

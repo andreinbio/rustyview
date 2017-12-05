@@ -29,11 +29,28 @@ impl<'a> View<'a> {
 
     /// # Parse template
     fn parse_template(&self, file_content: String, model: serde_json::Value) -> String {
-        let template_blocks: Option<Vec<BlockFields>> = index_blocks(&file_content[..]);
-        let clean_template: String = clean_template(template_blocks, &file_content[..]);
+        let parent_file: Option<String> = get_parent_name(&file_content[..]);
+        let mut template_blocks: Option<Vec<BlockFields>> = None;
+        let mut final_content: String = file_content.clone();
+
+        if parent_file.is_some() {
+            let parent_template: String = parent_file.unwrap();
+            let parent_content: String = self.get_file(&parent_template[..]);
+            let parent_template_blocks: Option<Vec<BlockFields>> = index_blocks(&parent_content[..]);
+            let child_blocks = index_blocks(&file_content[..]);
+            template_blocks = update_parent_blocks(parent_template_blocks, child_blocks);
+            final_content = parent_content.clone();
+        }
+
+        if template_blocks.is_none() {
+            template_blocks = index_blocks(&file_content[..]);
+        }
+
+        println!("template_blocks => {:?}", template_blocks);
+
+        let clean_template: String = clean_template(template_blocks, &final_content[..]);
         let final_render: String = replace_template_variables(model, &clean_template[..]);
 
-        //String::from("helllo")
         final_render
     }
 }
