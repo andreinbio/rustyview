@@ -71,7 +71,6 @@ fn index_block_tags(file_content: &str, pattern: &Pattern) -> Vec<BlockTag> {
         // check for block tags
         //@TO DO latter check here for includes, filters tags also
         if tag_string.content.contains(&pattern.block_pattern) {
-            // println!("{:?}", tag_string.content);
             block_tags.push(get_block_tag(tag_string, &pattern));
         }
     }
@@ -96,9 +95,6 @@ fn get_tag_line(file_content: &str, current_index: &mut usize, pattern: &Pattern
 fn get_block_tag(tag_line: TagLine, pattern: &Pattern) -> BlockTag {
     let tag_type: TagType = get_tag_type(&tag_line.content, pattern);
     let index_tag: usize = get_tag_index(&tag_type, &tag_line.start_index, &tag_line.next_index);
-
-    //println!("tag: {:?}", tag_content);
-    //println!("start_index, next_index, index_tag: {:?}, {:?}, {:?}", start_index, next_index, index_tag);
 
     BlockTag {
         tag_type: tag_type,
@@ -180,26 +176,6 @@ pub fn clean_template(blocks: Option<Vec<BlockFields>>, file_content: &str) -> S
     let mut template_content: String = String::from(file_content);
 
     if blocks.is_some() {
-        // for block in blocks.as_ref().unwrap() {
-        //     let start_tag: &BlockTag = block.start_tag.as_ref().expect("start tag");
-        //     let end_tag: &BlockTag = block.end_tag.as_ref().expect("end tag");
-        //     let content_to_replace: String = String::from(&template_content[start_tag.content_index..end_tag.content_index]);
-        //
-        //     // template_content = template_content.replace(&start_tag.content[..], "");
-        //     // template_content = template_content.replace(&end_tag.content[..], "");
-        //     template_content = template_content.replace(&content_to_replace[..], &block.content);
-        // }
-        //
-        // for block in blocks.as_ref().unwrap() {
-        //     let start_tag: &BlockTag = block.start_tag.as_ref().expect("start tag");
-        //     let end_tag: &BlockTag = block.end_tag.as_ref().expect("end tag");
-        //     // let content_to_replace: String = String::from(&template_content[start_tag.content_index..end_tag.content_index]);
-        //
-        //     template_content = template_content.replace(&start_tag.content[..], "");
-        //     template_content = template_content.replace(&end_tag.content[..], "");
-        //     // template_content = template_content.replace(&content_to_replace[..], &block.content);
-        // }
-
         for block in blocks.as_ref().unwrap() {
             let start_tag: &BlockTag = block.start_tag.as_ref().expect("start tag");
             let end_tag: &BlockTag = block.end_tag.as_ref().expect("end tag");
