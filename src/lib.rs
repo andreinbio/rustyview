@@ -3,4 +3,5 @@ extern crate serde_json;
 
 mod loader;
 mod html;
-pub mod view;
+mod view;
+pub use view::View as View;
